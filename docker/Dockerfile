@@ -8,6 +8,7 @@ WORKDIR /app
 COPY requirements.txt ./
 COPY src/ ./src/
 COPY config/ ./config/
+COPY migrations/ ./migrations/
 
 # Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
