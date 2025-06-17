@@ -14,6 +14,11 @@ class User(db.Model, UserMixin):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
+        if not self.password_hash:
+            # Si aucun mot de passe n'est défini, on enregistre un hash pour bloquer l'accès futur
+            self.set_password('changeme123!')
+            db.session.commit()
+            return False
         return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
