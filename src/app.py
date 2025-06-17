@@ -2,12 +2,14 @@ from flask import Flask, redirect, url_for, request
 import os
 import sys
 from dotenv import load_dotenv
+from flask_migrate import Migrate
 
 # Ajouter le répertoire parent au chemin de recherche pour les importations
 from config.database import get_connection_string
 from config.logging_config import setup_logging
 from src.models import db 
 from src.routes import blueprints 
+from src.routes.main_routes import login_manager
 
 
 # Load environment variables
@@ -26,7 +28,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = get_connection_string()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
+login_manager.init_app(app)
 db.init_app(app)
+migrate = Migrate(app, db)
 
 # Rendre le mode debug accessible dans les templates
 @app.context_processor

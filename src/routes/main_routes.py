@@ -4,58 +4,69 @@ from src.models.user import User
 from src.models.item import Item
 from src.models.borrow import Borrow
 from datetime import datetime
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from src.forms import LoginForm, ChangePasswordForm
+from werkzeug.security import generate_password_hash
 
 # Création du blueprint
 main_bp = Blueprint('main', __name__)
 
+# Initialisation de Flask-Login
+login_manager = LoginManager()
+# login_manager.init_app(app)  # À faire dans app.py
+login_manager.login_view = 'main.index'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.get(User, int(user_id))
+
 # Route principale
-@main_bp.route('/')
+@main_bp.route('/', methods=['GET', 'POST'])
 def index():
     """
     Page d'accueil - Redirige vers le tableau de bord si l'utilisateur est connecté,
     ou vers la page de login sinon
     """
-    if 'user_id' in session:
+    if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
-    
+    form = LoginForm()
     users = db.session.query(User).order_by(User.name).all()
-    return render_template('index.html', users=users)
+    return render_template('index.html', users=users, form=form)
 
 # Page de connexion
 @main_bp.route('/login', methods=['POST'])
 def login():
     """
-    Gère la connexion d'un utilisateur
+    Gère la connexion d'un utilisateur avec mot de passe
     """
-    user_name = request.form.get('user_name')
-    user_id = request.form.get('user_id')  # Pour compatibilité avec le formulaire de sélection
-    
-    # Priorité à user_id s'il est fourni
-    if user_id:
-        user = db.session.get(User, user_id)
-    elif user_name:
-        # Rechercher l'utilisateur par son nom
-        user = db.session.query(User).filter(User.name == user_name).first()
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(User).filter_by(name=form.username.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user)
+            flash(f'Bienvenue, {user.name}!', 'success')
+            return redirect(url_for('main.dashboard'))
+        else:
+            flash('Nom ou mot de passe incorrect', 'danger')
     else:
-        flash('Veuillez entrer votre nom', 'danger')
-        return redirect(url_for('main.index'))
-    
-    if not user:
-        # Créer un nouvel utilisateur si le nom n'existe pas
-        if user_name:
-            user = User(name=user_name)
+        flash('Veuillez remplir tous les champs', 'danger')
+    users = db.session.query(User).order_by(User.name).all()
+    return render_template('index.html', users=users, form=form)
+
+@main_bp.route('/register', methods=['GET', 'POST'])
+def register():
+    form = LoginForm()
+    if form.validate_on_submit():
+        if db.session.query(User).filter_by(name=form.username.data).first():
+            flash('Ce nom d\'utilisateur existe déjà.', 'danger')
+        else:
+            user = User(name=form.username.data)
+            user.set_password(form.password.data)
             db.session.add(user)
             db.session.commit()
-        else:
-            flash('Utilisateur non trouvé', 'danger')
+            flash('Compte créé avec succès. Vous pouvez vous connecter.', 'success')
             return redirect(url_for('main.index'))
-    
-    # Connecter l'utilisateur
-    session['user_id'] = user.id
-    session['user_name'] = user.name
-    
-    flash(f'Bienvenue, {user.name}!', 'success')
-    return redirect(url_for('main.dashboard'))
+    return render_template('register.html', form=form)
 
 # Connexion rapide avec ID
 @main_bp.route('/login/<int:user_id>')
@@ -76,6 +87,7 @@ def login_with_id(user_id):
 
 # Tableau de bord
 @main_bp.route('/dashboard')
+@login_required
 def dashboard():
     """
     Tableau de bord principal de l'application
@@ -104,6 +116,7 @@ def dashboard():
 
 # Mes emprunts
 @main_bp.route('/my-borrows')
+@login_required
 def my_borrows():
     """
     Page affichant tous les emprunts en cours de l'utilisateur
@@ -132,16 +145,18 @@ def my_borrows():
 
 # Déconnexion
 @main_bp.route('/logout')
+@login_required
 def logout():
     """
     Déconnecte l'utilisateur et nettoie la session
     """
-    session.clear()
+    logout_user()
     flash('Vous avez été déconnecté', 'info')
     return redirect(url_for('main.index'))
 
 # Page Chat Inventaire
 @main_bp.route('/chat-inventaire')
+@login_required
 def chat_inventaire():
     """
     Page pour interagir avec l'IA concernant l'inventaire.
@@ -149,5 +164,19 @@ def chat_inventaire():
     if 'user_id' not in session:
         flash('Veuillez vous connecter pour accéder à cette fonctionnalité.', 'warning')
         return redirect(url_for('main.index'))
-    
     return render_template('chat_inventaire.html')
+
+@main_bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    form = ChangePasswordForm()
+    if form.validate_on_submit():
+        if not current_user.check_password(form.current_password.data):
+            flash('Mot de passe actuel incorrect.', 'danger')
+        elif form.new_password.data == form.current_password.data:
+            flash('Le nouveau mot de passe doit être différent de l\'ancien.', 'warning')
+        else:
+            current_user.set_password(form.new_password.data)
+            db.session.commit()
+            flash('Mot de passe modifié avec succès.', 'success')
+    return render_template('profile.html', form=form)

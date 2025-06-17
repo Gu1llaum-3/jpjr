@@ -1,8 +1,5 @@
 {% extends "base.html" %}
 
-{% block top_bar %}{% endblock %}
-{% block navbar %}{% endblock %}
-
 {% block content %}
 <div class="container">
     <div class="row justify-content-center">
@@ -12,19 +9,24 @@
                     <img src="{{ url_for('static', filename='images/logov2_nobackground.png') }}" alt="Logo" class="mb-4" style="height: 120px; width: auto;">
                     <h2 class="mb-4 section-title-underline">Bienvenue</h2>
                     <form method="POST" action="{{ url_for('main.login') }}">
+                        {{ form.hidden_tag() }}
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="user_name" name="user_name" placeholder="Votre nom" required>
+                            {{ form.username(class="form-control", placeholder="Votre nom") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.password(class="form-control", placeholder="Mot de passe") }}
                         </div>
                         <button type="submit" class="btn gradient-button">Connexion</button>
                     </form>
-                    
+                    <div class="mt-2">
+                        <a href="{{ url_for('main.register') }}">Créer un compte</a>
+                    </div>
                     <div class="mt-4">
                         <h5 class="mb-3 text-center">Connexion rapide</h5>
                         <div class="row g-3">
                             {% for user in users %}
                             <div class="col-12 col-sm-6 col-md-4">
-                                <a href="{{ url_for('main.login_with_id', user_id=user.id) }}" 
-                                   class="text-decoration-none user-card-wrapper">
+                                <button type="button" class="btn w-100 user-quick-login-btn" data-username="{{ user.name }}">
                                     <div class="card user-card h-100">
                                         <div class="card-body text-center">
                                             <div class="user-avatar mb-2">
@@ -33,7 +35,7 @@
                                             <h6 class="card-title mb-0">{{ user.name }}</h6>
                                         </div>
                                     </div>
-                                </a>
+                                </button>
                             </div>
                             {% endfor %}
                         </div>
@@ -43,4 +45,52 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Connexion rapide -->
+<div class="modal fade" id="quickLoginModal" tabindex="-1" aria-labelledby="quickLoginModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('main.login') }}">
+        {{ form.hidden_tag() }}
+        <div class="modal-header">
+          <h5 class="modal-title" id="quickLoginModalLabel">Connexion rapide</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="quickLoginUsername" class="form-label">Nom d'utilisateur</label>
+            <input type="text" class="form-control" id="quickLoginUsername" name="username" readonly>
+          </div>
+          <div class="mb-3">
+            <label for="quickLoginPassword" class="form-label">Mot de passe</label>
+            <input type="password" class="form-control" id="quickLoginPassword" name="password" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Connexion</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var quickLoginModal = new bootstrap.Modal(document.getElementById('quickLoginModal'));
+    var usernameInput = document.getElementById('quickLoginUsername');
+    var passwordInput = document.getElementById('quickLoginPassword');
+    document.querySelectorAll('.user-quick-login-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            usernameInput.value = btn.getAttribute('data-username');
+            passwordInput.value = '';
+            quickLoginModal.show();
+            setTimeout(function() { passwordInput.focus(); }, 300);
+        });
+    });
+});
+</script>
 {% endblock %}

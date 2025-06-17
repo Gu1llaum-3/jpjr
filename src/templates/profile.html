@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2 class="section-title-underline mb-3">Mon profil</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.profile') }}">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" value="{{ current_user.name }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        {{ form.current_password.label(class="form-label") }}
+                        {{ form.current_password(class="form-control", placeholder="Mot de passe actuel") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.new_password.label(class="form-label") }}
+                        {{ form.new_password(class="form-control", placeholder="Nouveau mot de passe") }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.confirm_new_password.label(class="form-label") }}
+                        {{ form.confirm_new_password(class="form-control", placeholder="Confirmer le nouveau mot de passe") }}
+                    </div>
+                    <div class="text-end mt-3">
+                        {{ form.submit(class="btn gradient-button") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
