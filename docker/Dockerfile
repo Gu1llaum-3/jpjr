@@ -21,5 +21,9 @@ ENV PYTHONPATH="/app"
 # Exposer le port Flask
 EXPOSE 5001
 
-# Commande de lancement (modifiez si le point d'entrée diffère)
-CMD ["python", "src/app.py"]
+# Rendre le script entrypoint exécutable et l'utiliser comme point d'entrée
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Utiliser le script entrypoint pour lancer le conteneur
+ENTRYPOINT ["/entrypoint.sh"]
